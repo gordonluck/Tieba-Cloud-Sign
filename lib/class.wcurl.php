@@ -279,12 +279,7 @@ class wcurl {
      * @return $this
      */
     public function reset() {
-        if(function_exists('curl_reset')){
-            curl_reset($this->conn);
-        } else {
-            if(is_resource($this->conn)) curl_close($this->conn);
-            $this->conn = curl_init();
-        }
+        curl_reset($this->conn);
         return $this;
     }
 
@@ -294,7 +289,7 @@ class wcurl {
      * @param array  $head
      * @return $this
      */
-    public function init($file = '', array $head = array('User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36')) {
+    public function init($file = '', array $head = array('User-Agent: Mozilla/5.0 (Windows NT 6.2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.137 Safari/537.36')) {
         $this->reset();
         if(!empty($file)) $this->setUrl($file);
         $this->setHeader($head)->setAll(array(//wcurl默认设定

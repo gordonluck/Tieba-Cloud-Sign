@@ -7,9 +7,11 @@ global $m;
 
 <!-- NAVI -->
 <ul class="nav nav-tabs" id="PageTab">
-  <li class="active"><a href="#adminid" data-toggle="tab" onclick="$('#newid2').css('display','none');$('#newid').css('display','none');$('#adminid').css('display','');">管理账号</a></li>
-  <?php if (option::get('bduss_num') != '-1' || ISVIP) { ?><li><a href="#newid" data-toggle="tab" onclick="$('#newid').css('display','');$('#adminid').css('display','none');$('#newid2').css('display','none');">自动绑定</a></li>
-  <li><a href="#newid2" data-toggle="tab" onclick="$('#newid2').css('display','');$('#adminid').css('display','none');$('#newid').css('display','none');">手动绑定</a></li><?php } ?>
+  <li class="active"><a href="#adminid" data-toggle="tab" onclick="$('#newid2').hide();$('#newid3').hide();$('#newid4').hide();$('#newid').hide();$('#adminid').show();">管理账号</a></li>
+  <?php if (option::get('bduss_num') != '-1' || ISVIP) { ?><li><a href="#newid" data-toggle="tab" onclick="$('#newid').show();$('#adminid').hide();$('#newid2').hide();$('#newid3').hide();$('#newid4').hide();">自动绑定</a></li>
+  <li><a href="#newid2" data-toggle="tab" onclick="$('#newid2').show();$('#adminid').hide();$('#newid').hide();$('#newid3').hide();$('#newid4').hide();">手动绑定</a></li>
+  <li><a href="#newid3" data-toggle="tab" onclick="$('#newid').hide();$('#newid2').hide();$('#adminid').hide();$('#newid4').hide();$('#newid3').show();qrcodel();">扫码绑定</a></li>
+  <li><a href="#newid4" data-toggle="tab" onclick="$('#newid').hide();$('#newid2').hide();$('#adminid').hide();$('#newid4').show();$('#newid3').hide();">短信绑定</a></li><?php } ?>
 </ul>
 <br/>
 <!-- END NAVI -->
@@ -62,7 +64,9 @@ global $m;
 
 <!-- PAGE2: NEWID -->
 <div class="tab-pane fade" id="newid" style="display:none">
+<script type="text/javascript" src="./source/js/base.js">
   <script type="text/javascript">
+  /*
       $(document).ready(function(){
           $("#addbdid_form").submit(function(e){
               $('#addbdid_submit').attr('disabled',true);
@@ -79,7 +83,7 @@ global $m;
                       'bd_pw': $('#bd_pw').val()
                   },
                   beforeSend: function(x) {
-                      this.data += "&vcode=" + $('#bd_v').val() + "&vcodestr=" + $('#vcodeStr').val();
+                      this.data += "&vcode=" + $('#addbdid_ver').val() + "&vcodestr=" + $('#vcodeStr').val();
                   },
                   complete: function(x,y) {
                       $('#addbdid_submit').removeAttr('disabled');
@@ -90,7 +94,7 @@ global $m;
                           $('#addbdid_vcodeRequired').attr('value','1');
                           $('#vcodeImg').attr('src', x.img);
                           $('#vcodeStr').attr('value', x.vcodestr);
-                          $('#addbdis_text').html(x.msg);
+                          $('.addbdis_text').html(x.msg);
                           $('#addbdid_msg').html(x.msg);
                           $('#addbdid_submit').removeAttr('disabled');
                           $('#addbdid_ver').css({"display":""});
@@ -109,8 +113,7 @@ global $m;
               });
           });
       });
-  /*
-  function addbdid_getbduss() {
+    function addbdid_getbduss() {
 
     $(document).ready(function(){
 
@@ -118,9 +121,9 @@ global $m;
   }
   */
 </script>
-<div id="addbdid_prog" style="display:none">
-  <b><span class="addbdis_text">正在拉取验证信息...</span></b><br/><br/>
-  <div class="progress">
+<div id="addbdid_prog" style="display:block">
+  <b><span class="addbdis_text"></span></b><br/><br/>
+  <div class="progress" style="display:none;">
     <div class="progress-bar progress-bar-striped active" id="addbdid_pb" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 25%">
     </div>
   </div>
@@ -141,8 +144,8 @@ global $m;
 </div>
 <br/>
   <div id="addbdid_ver" style="display: none">
-    <img onclick="addbdid_getcode();" src="" style="float:left;" id="vcodeImg">&nbsp;&nbsp;&nbsp;请在下面输入左图中的字符<br>&nbsp;&nbsp;&nbsp;点击图片更换验证码
-    <br/><br/>
+    <div class="alert alert-info">请在下面输入的字符，点击图片更换验证码</div>
+	<div id="codeimg"></div>
     <div class="input-group">
       <span class="input-group-addon">验证码</span>
        <input type="text" class="form-control" id="bd_v" placeholder="请输入上图的字符" />
@@ -151,6 +154,19 @@ global $m;
     <input type="hidden" id="vcodeStr" name="vcodestr" value=""/>
       <input type="hidden" id="addbdid_vcodeRequired" value="0">
   </div>
+  	<div id="security" class="input-group" style="display:none;">
+		<td>
+			<div class="input-group">
+			<span class="input-group-addon">验证码</span>
+			<input type="text" id="smscode" value="" class="form-control">
+			<span class="input-group-btn">
+			<button id="sendcode" class="btn btn-default" type="button">发送验证码</button>
+			</span>
+			</div>
+		</td>
+	<button type="button" id="submit2" class="btn btn-primary btn-block">提交</button>
+		<pre>提示：60秒内只能发送一次验证码，否则会提示频繁</pre>
+	</div>
 <input type="submit" id="addbdid_submit" class="btn btn-primary" value="点击绑定">
 </form>
 <br/><br/>
@@ -165,7 +181,235 @@ global $m;
 	</div>
 </div>
 </div>
-
+<script>
+var ajax={
+	get: function(url, dataType, callback) {
+		dataType = dataType || 'html';
+		$.ajax({
+			type: "GET",
+			url: url,
+			async: true,
+			dataType: dataType,
+			cache:false,
+			success: function(data,status) {
+				if (callback == null) {
+					return;
+				}
+				callback(data);
+			},
+			error: function(error) {
+				alert('创建连接失败');
+			}
+		});
+	},
+	post: function(url, parameter, dataType, callback) {
+		dataType = dataType || 'html';
+		$.ajax({
+			type: "POST",
+			url: url,
+			async: true,
+			dataType: dataType,
+			data: parameter,
+			cache:false,
+			success: function(data,status) {
+				if (callback == null) {
+					return;
+				}
+				callback(data);
+			},
+			error: function(error) {
+				alert('创建连接失败');
+			}
+		});
+	}
+}
+function trim(str){ //去掉头尾空格
+	return str.replace(/(^\s*)|(\s*$)/g, "");
+}
+function getpwd(pwd,time){
+	var passwd = pwd+time;
+	var rsa = "B3C61EBBA4659C4CE3639287EE871F1F48F7930EA977991C7AFE3CC442FEA49643212E7D570C853F368065CC57A2014666DA8AE7D493FD47D171C0D894EEE3ED7F99F6798B7FFD7B5873227038AD23E3197631A8CB642213B9F27D4901AB0D92BFA27542AE890855396ED92775255C977F5C302F1E7ED4B1E369C12CB6B1822F";
+	setMaxDigits(131);
+	var key = new RSAKeyPair("10001", "", rsa);
+	return encryptedString(key, passwd);
+}
+function gettime(user,pwd,vcode,vcodestr){
+	vcode=vcode||null;
+	vcodestr=vcodestr||null;
+	$('.addbdis_text').html('正在获取Token，请稍等...');
+	var getvcurl="login.php?do=time";
+	ajax.get(getvcurl, 'json', function(d) {
+		if(d.code ==0){
+			login(d.time,user,pwd,vcode,vcodestr);
+		}else{
+			alert(d.msg);
+			$('.addbdis_text').html('');
+		}
+	});
+}
+function login(time,user,pwd,vcode,vcodestr){
+	$('.addbdis_text').html('正在登录，请稍等...');
+	var p = getpwd(pwd, time);
+	//alert(p);return;
+	var loginurl="login.php?do=login";
+	ajax.post(loginurl,"time="+time+"&user="+user+"&pwd="+pwd+"&p="+p+"&vcode="+vcode+"&vcodestr="+vcodestr+"&r="+Math.random(1), 'json', function(d) {
+		if(d.code ==0){
+			////$('#login').hide();
+			$('#addbdid_ver').hide();
+			$('#addbdid_form').hide();
+			$('#security').hide();
+			$('#submit2').hide();
+			$('.addbdis_text').html('登录成功！请刷新页面。登录账号：'+decodeURIComponent(d.displayname));
+			//showresult(d);
+		}else if(d.code ==400023){
+			if(d.type == 'phone'){
+				$('.addbdis_text').html("请验证密保后登录，密保手机是："+d.phone);
+			}else{
+				$('.addbdis_text').html("请验证密保后登录，密保邮箱是："+d.email);
+			}
+			//$('#addbdid_form').hide();
+			$('#addbdid_ver').hide();
+			$('#bd_v').val("");
+			$('#security').show();$('#addbdid_submit').hide();
+			$('#security').attr('type',d.type);
+			$('#security').attr('lstr',encodeURIComponent(d.lstr));
+			$('#security').attr('ltoken',d.ltoken);
+		}else if(d.code ==310006 || d.code ==500001 || d.code ==500002){//需要验证码
+			$('.addbdis_text').html(d.msg);
+			getvc(d.vcodestr);
+		}else if(d.code ==230048 || d.code ==400010){
+			$('.addbdis_text').html("您输入的账号不存在，请重新输入");
+			$('#addbdid_form').attr('do','submit');
+			$('#addbdid_ver').hide();
+			$('#bd_v').val("");
+			$('#bd_name').focus();
+			$('#bd_name').val("");
+		}else if(d.code ==400011 || d.code ==400015){
+			$('.addbdis_text').html("您输入的密码有误，请重新输入");
+			$('#addbdid_form').attr('do','submit');
+			$('#addbdid_ver').hide();
+			$('#bd_v').val("");
+			$('#bd_pw').focus();
+			$('#bd_pw').val("");
+		}else{
+			$('.addbdis_text').html(d.msg+" ("+d.code+")");
+			$('#addbdid_form').attr('do','submit');
+			$('#addbdid_ver').hide();
+			//$('#login').show();
+		}
+	});
+	
+}
+function login2(type,lstr,ltoken,vcode){
+	$('.addbdis_text').html('正在登录，请稍等...');
+	var loginurl="login.php?do=login2";
+	ajax.post(loginurl,"type="+type+"&lstr="+lstr+"&ltoken="+ltoken+"&vcode="+vcode+"&r="+Math.random(1), 'json', function(d) {
+		if(d.code ==0){
+			$('.addbdis_text').html('登录成功！请刷新页面。登录账号：'+decodeURIComponent(d.displayname));
+			//$('#login').hide();
+			$('#addbdid_ver').hide();
+			$('#addbdid_form').show();
+			$('#security').hide();
+			$('#submit2').hide();
+			//showresult(d);
+		}else{
+			$('.addbdis_text').html(d.msg+" ("+d.code+")");
+			$('#addbdid_ver').hide();
+			//$('#login').show();
+		}
+	});
+	
+}
+function sendcode(type,lstr,ltoken){
+	var loginurl="login.php?do=sendcode";
+	ajax.post(loginurl,"type="+type+"&lstr="+lstr+"&ltoken="+ltoken+"&r="+Math.random(1), 'json', function(d) {
+		if(d.code ==0){
+			$('#addbdid_ver').hide();
+			$('#smscode').focus();
+			alert('验证码发送成功，请查收');
+		}else{
+			$('#addbdid_ver').hide();
+			alert(d.msg);
+		}
+	});
+	
+}
+function getvc(vcodestr){
+	$('#codeimg').attr('vcodestr',vcodestr);
+	$('#codeimg').html('<img onclick="this.src=\'login.php?do=getvcpic&vcodestr='+vcodestr+'&r=\'+Math.random();" src="login.php?do=getvcpic&vcodestr='+vcodestr+'&r='+Math.random(1)+'" title="点击刷新">');
+	$('#addbdid_form').attr('do','code');
+	$('#bd_v').val("");
+	$('#addbdid_ver').show();
+}/*
+function //showresult(arr){
+	console.log(arr);
+	$('.addbdis_text').html('<div class="alert alert-success">登录成功！'+decodeURIComponent(arr.displayname)+'</div><div class="input-group"><span class="input-group-addon">用户UID</span><input id="uid" value="'+arr.uid+'" class="form-control" /></div><br/><div class="input-group"><span class="input-group-addon">用户名</span><input id="user" value="'+arr.user+'" class="form-control"/></div><br/><div class="input-group"><span class="input-group-addon">BDUSS</span><input id="bduss" value="'+arr.bduss+'" class="form-control"/></div><br/><div class="input-group"><span class="input-group-addon">PTOKEN</span><input id="ptoken" value="'+arr.ptoken+'" class="form-control"/></div><br/><div class="input-group"><span class="input-group-addon">STOKEN</span><input id="stoken" value="'+arr.stoken+'" class="form-control"/></div>');
+}*/
+function checkvc(user,pwd){
+	$('.addbdis_text').html('登录中，请稍候...');
+	var getvcurl="login.php?do=checkvc";
+	ajax.post(getvcurl, 'user='+user, 'json', function(d) {
+		if(d.code ==0){
+			gettime(user,pwd);
+		}else if(d.code ==1){
+			$('.addbdis_text').html('请输入验证码。');
+			getvc(d.vcodestr);
+		}else{
+			$('.addbdis_text').html(d.msg+" ("+d.code+")");
+			$('#addbdid_ver').hide();
+		}
+	});
+}
+$(document).ready(function(){
+	$('#addbdid_form').submit(function(){
+		var self=$(this);
+		var user=trim($('#bd_name').val()),
+			pwd=trim($('#bd_pw').val());
+		if(user==''||pwd=='') {
+			alert("请确保每项不能为空！");
+			return false;
+		}
+		$('.addbdis_text').show();
+		if (self.attr("data-lock") === "true") return;
+		else self.attr("data-lock", "true");
+		if(self.attr('do') == 'code'){
+			var vcode=trim($('#bd_v').val()),
+				vcodestr=$('#codeimg').attr('vcodestr');
+			gettime(user,pwd,vcode,vcodestr);
+		}else{
+			checkvc(user,pwd);
+		}
+		self.attr("data-lock", "false");
+	});
+	$('#submit2').click(function(){
+		var self=$(this);
+		var code=trim($('#smscode').val());
+		if(code=='') {
+			alert("验证码不能为空！");
+			return false;
+		}
+		$('.addbdis_text').show();
+		if (self.attr("data-lock") === "true") return;
+		else self.attr("data-lock", "true");
+		var type=$('#security').attr('type'),
+			lstr=$('#security').attr('lstr'),
+			ltoken=$('#security').attr('ltoken');
+		login2(type,lstr,ltoken,code);
+		self.attr("data-lock", "false");
+	});
+	$('#sendcode').click(function(){
+		var self=$(this);
+		$('.addbdis_text').show();
+		if (self.attr("data-lock") === "true") return;
+		else self.attr("data-lock", "true");
+		var type=$('#security').attr('type'),
+			lstr=$('#security').attr('lstr'),
+			ltoken=$('#security').attr('ltoken');
+		sendcode(type,lstr,ltoken);
+		self.attr("data-lock", "false");
+	});
+});
+</script>
 <!-- END PAGE2 -->
 
 <!-- PAGE3: NEWID2 -->
@@ -195,5 +439,95 @@ global $m;
 </div>
 </div>
 <!-- END PAGE3 -->
+<!-- PAGE4: NEWID3 -->
+<div class="tab-pane fade" id="newid3" style="display:none">
+	<div class="panel-body" style="text-align: center;">
+		<div class="list-group">
+			<div class="list-group-item"><img src="https://m.baidu.com/static/index/plus/plus_logo.png" width="160px"></div>
+			<div class="list-group-item list-group-item-info" style="font-weight: bold;" id="load">
+				<span id="loginmsg">正在加载</span>
+			</div>
+			<div class="list-group-item" id="login" style="display:none;">
+			<div class="list-group-item" id="qrimg">
+			</div>
+			<p><button type="button" id="submit" class="btn btn-success btn-block">已完成扫码</button></p>
+			</div>
+		</div>
+	</div>
+	<script>
+	function getqrcode(){
+		var getvcurl='login.php?do=getqrcode&r='+Math.random(1);
+		$.get(getvcurl, function(d) {
+			if(d.code ==0){
+				$('#qrimg').attr('sign',d.sign);
+				$('#qrimg').html('<img onclick="getqrcode()" src="https://'+d.imgurl+'" title="点击刷新">');
+				$('#login').show();
+				$('#loginmsg').html('请使用<a href="http://xbox.m.baidu.com/mo/" target="_blank" rel="noreferrer">手机百度app</a>扫描登录');
+			}else{
+				alert(d.msg);
+			}
+		}, 'json');
+	}
+	function qrlogin(){
+		var sign=$('#qrimg').attr('sign');
+		if(sign=='')return;
+		var loginurl="login.php?do=qrlogin";
+		$('#submit').html('Loading...');
+		$.ajax({
+			type: "POST",
+			url: loginurl,
+			async: true,
+			dataType: 'json',
+			timeout: 2000,
+			data: "sign="+sign+"&r="+Math.random(1),
+			cache:false,
+			success: function(data,status) {
+				$('#submit').html('已完成扫码');
+				if(data.code ==0){
+					$('#login').hide();
+					$('#load').html('登录成功！请刷新页面。登录账号：'+decodeURIComponent(data.displayname));
+					//showresult(data);
+				}else{
+					$('#load').html(data.msg+" ("+data.code+")");
+					alert('未检测到登录状态');
+					getqrcode();
+				}
+			},
+			error: function(error) {
+				$('#submit').html('已完成扫码');
+				alert('未检测到登录状态');
+				getqrcode();
+			}
+		});
+		
+	}
+	function qrcodel(){
+	$(document).ready(function(){
+		getqrcode();
+		$('#submit').click(function(){
+			qrlogin();
+		});
+	});}
+	</script>
+</div>
+<!-- END PAGE4 -->
+<!-- PAGE5: NEWID4 -->
+<div class="tab-pane fade" id="newid4" style="display:none">
+	<script>
+	function setIframeHeight(iframe) {
+		if (iframe) {
+			var iframeWin = iframe.contentWindow || iframe.contentDocument.parentWindow;
+			if (iframeWin.document.body) {
+			iframe.height = iframeWin.document.documentElement.scrollHeight || iframeWin.document.body.scrollHeight;
+			}
+		}
+	};
+	window.onload = function () {
+		setIframeHeight(document.getElementById('iFrame'));
+	};
+	</script>
+	<iframe id="iFrame" src="./login3.php" width="100%" frameborder="0" scrolling="no" onmouseout="setIframeHeight(document.getElementById('iFrame'));" onmousedown="setIframeHeight(document.getElementById('iFrame'));" onclick="setIframeHeight(document.getElementById('iFrame'));"></iframe>
+</div>
+<!-- END PAGE5 -->
 <?php doAction('baiduid'); ?>
 <br/><br/><br/><br/><br/><br/><?php echo SYSTEM_FN ?> V<?php echo SYSTEM_VER  . ' ' . SYSTEM_VER_NOTE ?> // 作者: <a href="https://kenvix.com" target="_blank">Kenvix</a> &amp; <a href="http://www.mokeyjay.com/" target="_blank">mokeyjay</a> &amp; <a href="http://fyy1999.lofter.com/" target="_blank">FYY</a> &amp; <a href="http://www.stusgame.com/" target="_blank">StusGame</a>

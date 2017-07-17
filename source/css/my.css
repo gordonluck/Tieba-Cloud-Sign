@@ -1,1 +1,10 @@
 /** 用户自定义CSS **/
+.addbdis_text {
+	color: #31708f;
+    background-color: #d9edf7;
+    border-color: #bce8f1;
+	padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
